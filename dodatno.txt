@@ -1,0 +1,2 @@
+
+Nakon pritiska tastera 'w' ili 's' animacija odradi jedan korak i pre nastavka postoji delay koji nisam znao da resim.
