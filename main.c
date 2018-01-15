@@ -1,3 +1,4 @@
+
 #include <GL/glut.h>
 #include<math.h>
 
@@ -5,17 +6,24 @@
 #define WIDTH 640
 #define HEIGHT 480
 
+// Vreme u milisekundama izmedju dva otkucaja tajmera
+#define TIMERMSECS 20
 
+// Promena z koordinate u jednom otkucaju tajmera
+#define TRARATE 0.2f
 
 // Promenljive (globalne)
+int m=1;
 int u=0,o=-10,p=11,v=-5,b=6;
 
+static GLfloat tra = 0.0f;
 static GLfloat mov = 3.0f;
 static int j,k,l,n;
 
 // Prototipovi funkcija
 static void on_init(int w, int h);
 static void on_reshape(GLsizei w, GLsizei h);
+static void on_timer(int value);
 static void on_display();
 static void on_keyboard(unsigned char k, int x, int y);
 
@@ -45,6 +53,8 @@ int main(int argc, char** argv)
     glClearColor(0.3f, 0, 0, 0);
     glEnable(GL_DEPTH_TEST);
     
+    // Postavlja se tajmer
+    glutTimerFunc(TIMERMSECS, on_timer, 0);
     
     // Postavlja se osvetljenje
     glEnable(GL_LIGHTING);
@@ -77,12 +87,29 @@ static void on_reshape(GLsizei w, GLsizei h)
     
     // Pozicioniranje kamere
     gluPerspective(45.0f,(GLfloat)w/(GLfloat)h,0.1f,1000.0f);
-    gluLookAt(-50, 0, 0, 0, 0, 0, 0.0f, 1.0f, 0.0f);
+    gluLookAt(-50, 0, tra, 0, 0, tra, 0.0f, 1.0f, 0.0f);
         
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
 }
+// Tajmer funkcija
+static void on_timer(int value)
+{ 
+    // Uslov za kretanje animacije
+    if(m!=0){
+        
+        // Postavlja se tajmer (1000/20=50fps)
+        glutTimerFunc(TIMERMSECS, on_timer, 0);
+    
+        // Uvecavamo koordinatu tokom vremena i dobijamo animaciju 
+        tra += TRARATE;
+        
+        // Forsiranje ponovnog iscrtavanja
+        glutPostRedisplay();
+    }
+}
+
 
 // Funkcija za prikaz (renderovanje)
 static void on_display()
@@ -102,10 +129,15 @@ static void on_display()
 
     // Postavlja se pozicija kamere
     gluPerspective(45.0f,(GLfloat)WIDTH/(GLfloat)HEIGHT,0.1f,1000.0f);
-    gluLookAt(-50, 0, 0, 0, 0, 0, 0.0f, 1.0f, 0.0f);
+    gluLookAt(-50, 0, tra, 0, 0, tra, 0.0f, 1.0f, 0.0f);
         
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
+    
+    // Ogranicenje po vertikali
+    if((mov==14) | (mov==-14))
+        m=0;
+    
     
     // Crtaju se plavi objekti (ivice)
     glPushMatrix();
@@ -130,11 +162,17 @@ static void on_display()
         glutSolidCube(5);
     glPopMatrix();
     
+    // Uslov u if-u racuna da li su objekti dovoljno blizu glavnom karakteru (Krvchish)
+    // U prvom for petlji imamo i uslov koji odredjuje da li se stiglo do kraja nivoa
     // Crtaju se zeleni objekti (virusi)
     for(j=25;j<=1000;j+=25){    
         glPushMatrix();
             glMaterialfv(GL_FRONT, GL_AMBIENT, ambients);
             glMaterialfv(GL_FRONT, GL_DIFFUSE, tri);
+            if(((mov<2.6) & (mov>-2.6) & (((int)tra%25)<=0)) | (tra>1010)){
+                m=0;
+                mov=0;
+            }
             glTranslatef(0,u,j);
             glutSolidIcosahedron();
         glPopMatrix();
@@ -143,6 +181,10 @@ static void on_display()
         glPushMatrix();
             glMaterialfv(GL_FRONT, GL_AMBIENT, ambients);
             glMaterialfv(GL_FRONT, GL_DIFFUSE, tri);
+            if((mov<-2.6) & (mov>-13.6) & (((int)tra%50)<=0)){
+                m=0;
+                mov=-8.1;
+            }
             glTranslatef(0,o,k);
             glutSolidDodecahedron();
             glTranslatef(0,5.4,0);
@@ -153,6 +195,10 @@ static void on_display()
         glPushMatrix();
             glMaterialfv(GL_FRONT, GL_AMBIENT, ambients);
             glMaterialfv(GL_FRONT, GL_DIFFUSE, tri);
+            if((mov<13.6) & (mov>8.4) & (((int)tra%20)<=0)){
+                m=0;
+                mov=11;
+            }
             glTranslatef(0,p,l);
             glutSolidIcosahedron();
         glPopMatrix();
@@ -161,10 +207,16 @@ static void on_display()
         glPushMatrix();
             glMaterialfv(GL_FRONT, GL_AMBIENT, ambients);
             glMaterialfv(GL_FRONT, GL_DIFFUSE, tri);
+            if((mov<8.5) & (mov>3.5) & (((int)tra%40)<=0)){
+                m=0;
+                mov=6;
+            }
             glTranslatef(0,b,n);
             glutSolidCube(0.7);
         glPopMatrix();
     }
+    
+    glTranslatef(0.0f,mov,tra);
     
     // Crta se Krvchish
     glPushMatrix();
@@ -209,7 +261,14 @@ static void on_keyboard(unsigned char k, int x, int y)
         case 'w':
             mov+=0.5;
             break;
-
+        case 'r':
+            // Nakon kolizije (m==0) ponovo pokrecemo nivo (animaciju) od nule pritiskom tastera 'r'
+            if(m==0){
+                m=1;
+                tra=0;
+                mov=3;
+                glutTimerFunc(TIMERMSECS, on_timer, 0);
+            }
             break;
         default:
             return;
